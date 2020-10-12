@@ -1,5 +1,5 @@
 {
-  "name": "fake-db",
+  "name": "@wilfredlopez/fake-db",
   "version": "1.0.0",
   "description": "fake database for testing apps",
   "main": "lib/index.js",

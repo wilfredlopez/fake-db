@@ -1,7 +1,7 @@
 ## FakeDb
 
 ```ts
-import FakeDb from 'fake-db'
+import FakeDb from '@wilfredlopez/fake-db'
 
 interface User {
   _id: string
