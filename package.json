@@ -1,0 +1,44 @@
+{
+  "name": "fake-db",
+  "version": "1.0.0",
+  "description": "fake database for testing apps",
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "lib/",
+    "esm/"
+  ],
+  "types": "lib/index.d.ts",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "prepare": "yarn build",
+    "gen:types": "tsc --noEmit",
+    "build:cjs": "tsc",
+    "build:es": "tsc -m esNext --outDir esm",
+    "prebuild": "yarn clean",
+    "build": "yarn build:cjs && yarn build:es",
+    "postbuild": "yarn gen:types",
+    "clean": "rimraf lib esm",
+    "release": "semantic-release"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wilfredlopez/fake-db.git"
+  },
+  "author": {
+    "name": "Wilfred Lopez",
+    "email": "cubamc@gmail.com",
+    "url": "https://wilfredlopez.net"
+  },
+  "license": "MIT",
+  "keywords": [],
+  "dependencies": {
+    "uuid": "^8.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^14.11.8",
+    "@types/uuid": "^8.3.0",
+    "rimraf": "^3.0.2",
+    "typescript": "^4.0.3"
+  }
+}
