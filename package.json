@@ -1,6 +1,6 @@
 {
   "name": "@wilfredlopez/fake-db",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "fake database for testing apps",
   "main": "lib/index.js",
   "module": "esm/index.js",
