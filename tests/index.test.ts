@@ -1,35 +1,50 @@
-import FakeDb from '../src/index'
+import { connectFakeDb, Connection, FakeDb } from '../src/index'
 import path from 'path'
-import { existsSync } from 'fs'
 
 interface User {
-  _id: number
+  _id: string
   firstname: string
   lastname: string
   email: string
   password: string
 }
 
-describe.skip('fakeDb', () => {
-  it('creates a db jsonfile', () => {
-    const filePath = path.join(__dirname, 'test-user.json')
-    new FakeDb<User>(filePath)
-    expect(existsSync(filePath)).toBeTruthy()
+const filePath = path.join(__dirname, 'test-user.json')
+
+let userDbIntance: FakeDb<User>
+
+const dbKey = 'testUsers'
+
+describe('fakeDb', () => {
+  beforeAll(async () => {
+    const connection = await connectFakeDb(filePath)
+    if (connection && connection instanceof Connection) {
+      connection.dropDatabase()
+    }
   })
 
+  it('can initialize itself', () => {
+    const userDb = new FakeDb<User>(dbKey)
+    userDbIntance = userDb
+    expect(userDb).toBeDefined()
+  })
+  it('is a singleton', () => {
+    const otherI = new FakeDb(dbKey)
+    expect(userDbIntance).toBe(otherI)
+  })
   it('finds all objects that meet criteria', () => {
-    const filePath = path.join(__dirname, 'test-user.json')
-    const userDb = new FakeDb<User>(filePath)
-    userDb.clearDatabase()
+    // const filePath = path.join(__dirname, 'test-user.json')
+    const userDb = new FakeDb<User>('testUsers')
+    // userDb.clearDatabase()
     userDb.create({
-      _id: 1,
+      _id: '1',
       email: 'test@test.com',
       firstname: 'wil',
       lastname: 'lopez',
       password: 'password',
     })
     userDb.create({
-      _id: 2,
+      _id: '2',
       email: 'test2@test.com',
       firstname: 'wil',
       lastname: 'some',
@@ -37,7 +52,7 @@ describe.skip('fakeDb', () => {
     })
 
     userDb.create({
-      _id: 3,
+      _id: '3',
       email: 'test3@test.com',
       firstname: 'wil',
       lastname: 'ddd',
@@ -45,7 +60,7 @@ describe.skip('fakeDb', () => {
     })
 
     userDb.create({
-      _id: 3,
+      _id: '3',
       email: 'test3@test.com',
       firstname: 'notwil',
       lastname: 'ddd',
@@ -59,12 +74,12 @@ describe.skip('fakeDb', () => {
   })
 
   it('filter the data', () => {
-    const filePath = path.join(__dirname, 'names.json')
+    // const filePath = path.join(__dirname, 'names.json')
     interface Names {
       first: string
       last: string
     }
-    const namesDb = new FakeDb<Names>(filePath)
+    const namesDb = new FakeDb<Names>('namesDB')
 
     namesDb.create(
       {

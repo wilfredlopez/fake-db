@@ -16,7 +16,7 @@ describe('ObjectID', () => {
   it('is doesnt throw an error', () => {
     const [one, two, ...rest] = [1, 2]
     for (let [] of Object.entries(rest)) {
-      console.log('entries')
+      // console.log('entries')
     }
   })
 })
