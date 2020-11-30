@@ -98,16 +98,14 @@ export class MoongooseDevConnection<
     allData[instanceName] = allData[instanceName] || {}
     //{otherinstance: {}, instanceName: {}}
     Object.assign(allData, obj)
-    //{otherinstance: {}, instanceName: obj}
-
-    // allData[instanceName] = obj //alternative but leads to {"instanceName": {"instanceName": obj}}
-
     const data = JSON.stringify(allData)
 
     fs.writeFileSync(this.#fileUrl, data)
     return this
   }
   public save(instanceName: keyof T, obj: T[string]) {
+    //Obj should be the full database for the instanceName
+    //obj = {'intanceName': {'id1': typeof D, 'id2': typeof D}}
     if (!this.#fileUrl) {
       throw new MongooseDevConnectionError()
     }
