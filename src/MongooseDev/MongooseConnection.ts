@@ -22,6 +22,7 @@ export class MoongooseDevConnection<
    * @param fileUrl JSON FILE URL.
    */
   #fileUrl?: string
+  #cache: T | undefined
   #assertFileUrl = () => {
     if (!this.#fileUrl) {
       throw new MongooseDevConnectionError()
@@ -47,7 +48,10 @@ export class MoongooseDevConnection<
     }
     return Instance
   }
-  public retrive() {
+  public retrive(force = false) {
+    if (this.#cache && !force) {
+      return this.#cache
+    }
     const url = this.#assertFileUrl()
     // if (!this.#fileUrl) {
     //   throw new FakeDbConnectionError()
@@ -57,34 +61,39 @@ export class MoongooseDevConnection<
       flag: 'a+',
     })
     if (data) {
-      return JSON.parse(data) as T
+      this.#cache = JSON.parse(data) as T
+      return { ...this.#cache } as T
     }
+    this.#cache = {} as T
     return {} as T
   }
 
   public dropDatabase() {
-    const url = this.#assertFileUrl()
     const data = this.retrive() || {}
     for (let key in data) {
       for (let innerKey in data[key]) {
         delete data[key][innerKey]
       }
     }
-    fs.writeFileSync(url, JSON.stringify(data))
+    this.writeFile(data)
   }
   remove(instanceName: keyof T, id: ObjectID) {
     const allData = this.retrive()
     delete allData[instanceName][id.toHexString()]
+    this.writeFile(allData)
+    return this
+  }
+
+  private writeFile(allData: T) {
+    this.#cache = allData
     const data = JSON.stringify(allData)
     fs.writeFileSync(this.#assertFileUrl(), data)
-    return this
   }
 
   update(instanceName: string, obj: MongooseDevDocument<D>) {
     const allData = this.retrive()
     allData[instanceName][obj._id.toHexString()] = obj
-    const data = JSON.stringify(allData)
-    fs.writeFileSync(this.#assertFileUrl(), data)
+    this.writeFile(allData)
     return this
   }
 
@@ -98,9 +107,7 @@ export class MoongooseDevConnection<
     allData[instanceName] = allData[instanceName] || {}
     //{otherinstance: {}, instanceName: {}}
     Object.assign(allData, obj)
-    const data = JSON.stringify(allData)
-
-    fs.writeFileSync(this.#fileUrl, data)
+    this.writeFile(allData)
     return this
   }
   public save(instanceName: keyof T, obj: T[string]) {
@@ -112,8 +119,7 @@ export class MoongooseDevConnection<
     const allData = this.retrive()
     allData[instanceName] = allData[instanceName] || {}
     allData[instanceName] = obj
-    const data = JSON.stringify(allData)
-    fs.writeFileSync(this.#fileUrl, data)
+    this.writeFile(allData)
     return this
   }
 }

@@ -7,6 +7,7 @@ import mongoose, {
 } from 'mongoose'
 import { DataInterface } from './interfaces'
 import { MoongooseDevConnection } from './MongooseConnection'
+import { MongooseDevModel } from './MongooseDevModel'
 
 // const Document = DocumentProvider() as new () => DocumentInterface
 // class Connection<D extends { _id: ObjectID }, T extends DataInterface<D>> {
@@ -66,6 +67,28 @@ type PropertiesOf<T extends {}> = {
   [P in keyof T]: T[P]
 }
 
+//Defines all properties that should not be enumerable
+function defineNotEnumerableProperties(
+  obj: MongooseDevDocument<any>,
+  modelName: string
+) {
+  Object.defineProperty(obj, 'modelName', {
+    enumerable: false,
+    value: modelName || '',
+  })
+  Object.defineProperty(obj, '_events', {
+    enumerable: false,
+  })
+  Object.defineProperty(obj, '_eventsCount', {
+    enumerable: false,
+  })
+
+  Object.defineProperty(obj, 'isDev', {
+    enumerable: false,
+    value: obj.isDev,
+  })
+}
+
 export class MongooseDevDocument<T extends { _id: ObjectID }>
   extends EventEmitter
   implements Document {
@@ -80,12 +103,13 @@ export class MongooseDevDocument<T extends { _id: ObjectID }>
   collection: mongoose.Collection
   db: mongoose.Connection
   __v?: number | undefined
-  // protected connection: MoongooseDevConnection<
-  //   DataInterface<MongooseDevDocument<T>>
-  // >
 
-  get connection() {
+  protected get connection() {
     return new MoongooseDevConnection<T, DataInterface<T>>()
+  }
+
+  protected get modelInstance(): MongooseDevModel<any> {
+    return MongooseDevModel.getInstance(this.modelName!)!
   }
 
   constructor({ _id, isDev, modelName, ...rest }: NodeContructor<T>) {
@@ -96,22 +120,15 @@ export class MongooseDevDocument<T extends { _id: ObjectID }>
     if (_id) {
       this._id = _id
     }
-    Object.defineProperty(this, 'modelName', {
-      enumerable: false,
-      value: modelName || '',
-    })
-    Object.defineProperty(this, '_eventsCount', {
-      enumerable: false,
-    })
+
+    defineNotEnumerableProperties(this, modelName || '')
+    //Protected Property can only be set from within the class.
     Object.defineProperty(this, 'connection', {
       enumerable: false,
       value: this.connection,
     })
-    Object.defineProperty(this, 'isDev', {
-      enumerable: false,
-      value: this.isDev,
-    })
-
+    //Defining all properties of the object constructor values
+    //eg: new User({_id:"1", isDev:true, modelName:"User", email:'ss', password:'asdsad'})
     for (let [key, value] of Object.entries(rest)) {
       Object.defineProperty(this, key, {
         enumerable: true,
@@ -239,18 +256,20 @@ export class MongooseDevDocument<T extends { _id: ObjectID }>
     }
   }
 
-  remove(fn?: (err: any, product: this) => void): Promise<this> {
+  async remove(fn?: (err: any, product: this) => void): Promise<this> {
     if (!this.isDev) {
       return new Document().remove.bind(this, fn)
-      // super.remove(fn)
-    } else {
-      this.ensureModelName()
-      this.connection.remove(this.modelName!, this._id)
-      if (fn) {
-        fn(undefined, this)
-      }
     }
-    return new Promise<this>(res => res(this))
+    return new Promise<this>(async res => {
+      this.ensureModelName()
+      const response = this
+      await this.modelInstance.deleteOne({ _id: this._id })
+      // this.connection.remove(this.modelName!, this._id)
+      if (fn) {
+        fn(undefined, response)
+      }
+      res(response)
+    })
   }
   deleteOne(fn?: (err: any, product: this) => void): Promise<this> {
     if (!this.isDev) {

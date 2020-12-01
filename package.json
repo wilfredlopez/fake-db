@@ -20,7 +20,7 @@
     "postbuild": "yarn gen:types",
     "clean": "rimraf lib esm",
     "release": "semantic-release",
-    "test": "jest"
+    "test": "jest --runInBand"
   },
   "repository": {
     "type": "git",
