@@ -11,7 +11,7 @@
     "sourceMap": true,
     "declaration": true,
     "outDir": "lib",
-    "rootDir": "src",
+    // "rootDir": "src",
     "paths": {
       "@/*": ["src/*"]
     },
@@ -33,5 +33,5 @@
     "baseUrl": "."
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx"],
-  "exclude": ["node_modules", "src/**/*.test.ts", "lib", "esm", "tests"]
+  "exclude": ["node_modules","lib", "esm"]
 }

@@ -10,3 +10,27 @@ export type DataInterface<T> = Record<
 export type WhereType<T extends {}> = {
   [K in keyof T]?: T[K]
 }
+
+export type KeyoFQuery =
+  | '$currentDate'
+  | '$inc'
+  | '$min'
+  | '$max'
+  | '$mul'
+  | '$rename'
+  | '$set'
+  | '$setOnInsert'
+  | '$unset'
+  | '$addToSet'
+  | '$pop'
+  | '$pull'
+  | '$push'
+  | '$pullAll'
+  | '$bit'
+export type SupportedQueryStrings = '$where' | '$set'
+
+export interface QueryResults {
+  n?: number
+  nModified?: number
+  ok?: number
+}

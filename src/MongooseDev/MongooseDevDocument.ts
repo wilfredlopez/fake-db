@@ -1,71 +1,18 @@
 import { EventEmitter } from 'events'
 import { ObjectID } from 'mongodb'
-import mongoose, {
-  Document,
-  // Document,
-  // DocumentProvider,
-} from 'mongoose'
+import mongoose, { Document } from 'mongoose'
 import { DataInterface } from './interfaces'
 import { MoongooseDevConnection } from './MongooseConnection'
 import { MongooseDevModel } from './MongooseDevModel'
 
-// const Document = DocumentProvider() as new () => DocumentInterface
-// class Connection<D extends { _id: ObjectID }, T extends DataInterface<D>> {
-//   /**
-//    *
-//    * @param fileUrl JSON FILE URL.
-//    */
-//   constructor(public fileUrl: string) {
-//     if (!fileUrl.endsWith('.json')) {
-//       throw new Error('File URL for FakeBb most end with .json')
-//     }
-//   }
-//   public retrive() {
-//     const data = fs.readFileSync(this.fileUrl, {
-//       encoding: 'utf-8',
-//       flag: 'a+',
-//     })
-//     if (data) {
-//       return JSON.parse(data) as T
-//     }
-//     return {} as T
-//   }
-//   update(obj: DataWithId<D>) {
-//     const data = this.retrive() as any
-//     data[obj._id.toHexString()] = obj
-//     this.save(data)
-//   }
-//   remove(obj: DataWithId<D>) {
-//     const data = this.retrive() as any
-//     delete data[obj._id.toHexString()]
-//     this.save(data)
-//   }
-//   public save(obj: T) {
-//     const data = JSON.stringify(obj)
-//     fs.writeFileSync(this.fileUrl, data)
-//     return this
-//   }
-// }
-
-// type DataInterface<T> = { [key: string]: DataWithId<T> }
-
-// interface MongooseDevContructor<T extends MongooseDevDocument> {
-//   fileUrl: string
-//   modelName: string
-//   schema: Schema<T>
-//   isDev: boolean
-//   baseClass: new (...props: any[]) => T
-// }
-
-type NodeContructor<T extends { _id: ObjectID }> = {
-  // connection: MoongooseDevConnection<DataInterface<MongooseDevDocument<T>>>
-  isDev: boolean
-  modelName?: string
-} & PropertiesOf<T>
-
 type PropertiesOf<T extends {}> = {
   [P in keyof T]: T[P]
 }
+
+export type DevDocumentContructor<T extends { _id: ObjectID }> = {
+  // isDev: boolean
+  modelName?: string
+} & PropertiesOf<T>
 
 //Defines all properties that should not be enumerable
 function defineNotEnumerableProperties(
@@ -82,43 +29,49 @@ function defineNotEnumerableProperties(
   Object.defineProperty(obj, '_eventsCount', {
     enumerable: false,
   })
-
-  Object.defineProperty(obj, 'isDev', {
-    enumerable: false,
-    value: obj.isDev,
-  })
 }
 
 export class MongooseDevDocument<T extends { _id: ObjectID }>
   extends EventEmitter
   implements Document {
   _id: ObjectID
-  isDev?: boolean = true
-  modelName?: string
   errors: any
   isNew: boolean
   schema: mongoose.Schema<any>
   $locals: { [k: string]: any }
-  id?: any
   collection: mongoose.Collection
   db: mongoose.Connection
   __v?: number | undefined
 
+  /* ------****************************------
+   *        Custom Properties and Methods
+   * ------***************************------*/
+
+  private modelName?: string
+  get id() {
+    return this._id.toHexString()
+  }
   protected get connection() {
     return new MoongooseDevConnection<T, DataInterface<T>>()
+  }
+
+  private get isDev() {
+    return this.modelInstance.isDev
   }
 
   protected get modelInstance(): MongooseDevModel<any> {
     return MongooseDevModel.getInstance(this.modelName!)!
   }
 
-  constructor({ _id, isDev, modelName, ...rest }: NodeContructor<T>) {
+  /* ------****************************------
+   *        Constructor
+   * ------***************************------*/
+  constructor(props: DevDocumentContructor<T>) {
     super()
+    const { modelName, _id, ...rest } = props
     this.modelName = modelName || ''
-    this.isDev = isDev
-    // this.connection = connection
     if (_id) {
-      this._id = _id
+      this._id = new ObjectID(_id)
     }
 
     defineNotEnumerableProperties(this, modelName || '')
@@ -127,6 +80,7 @@ export class MongooseDevDocument<T extends { _id: ObjectID }>
       enumerable: false,
       value: this.connection,
     })
+
     //Defining all properties of the object constructor values
     //eg: new User({_id:"1", isDev:true, modelName:"User", email:'ss', password:'asdsad'})
     for (let [key, value] of Object.entries(rest)) {
@@ -136,6 +90,17 @@ export class MongooseDevDocument<T extends { _id: ObjectID }>
       })
     }
   }
+
+  private ensureModelName() {
+    if (!this.modelName) {
+      throw new Error('modelName was not provided')
+    }
+  }
+
+  /* ------****************************------
+   *        Mongoose Document Methods
+   * ------***************************------*/
+
   increment(): this {
     return new Document().increment.bind(this)
   }
@@ -250,12 +215,6 @@ export class MongooseDevDocument<T extends { _id: ObjectID }>
     return new Document().validateSync.bind(this, pathsToValidate)
   }
 
-  private ensureModelName() {
-    if (!this.modelName) {
-      throw new Error('modelName was not provided')
-    }
-  }
-
   async remove(fn?: (err: any, product: this) => void): Promise<this> {
     if (!this.isDev) {
       return new Document().remove.bind(this, fn)
@@ -320,7 +279,10 @@ export class MongooseDevDocument<T extends { _id: ObjectID }>
     if (!this.isDev) {
       return new Document().toJSON.bind(this)
     }
-    return this
+    return {
+      ...this,
+      id: this.id,
+    }
   }
 
   toString() {

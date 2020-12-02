@@ -8,120 +8,81 @@ import mongoose, {
   Schema,
   UpdateQuery,
 } from 'mongoose'
-import { DataInterface, DataWithId } from './interfaces'
+import { DataInterface, DataWithId, QueryResults } from './interfaces'
 // import mongodb from 'mongodb'
 // import { Model } from 'mongoose'
 import { MoongooseDevConnection } from './MongooseConnection'
 import { MongooseDevDocument } from './MongooseDevDocument'
+import { isEmptyObject, isQueryString, isSupportedQueryString } from './utils'
 
-function isMatchFunction<T>(obj: T, where: FilterQuery<T>) {
-  let allMatch = true
-  for (let val of Object.values(obj)) {
-    for (let key in where) {
-      const prop = where[key as keyof typeof where]
-      if (prop !== val) {
-        allMatch = false
-        break
-      }
-    }
-  }
-  return allMatch
-}
+const MODEL_INSTANCES: Record<
+  string,
+  MongooseDevModel<any> //& { new (): MongooseDevModel<any> }
+> = {}
 
-type KeyoFQuery =
-  | '$currentDate'
-  | '$inc'
-  | '$min'
-  | '$max'
-  | '$mul'
-  | '$rename'
-  | '$set'
-  | '$setOnInsert'
-  | '$unset'
-  | '$addToSet'
-  | '$pop'
-  | '$pull'
-  | '$push'
-  | '$pullAll'
-  | '$bit'
-type SupportedQueryStrings = '$where' | '$set'
-
-const SUPPORTED_QS: SupportedQueryStrings[] = ['$where', '$set']
-export function isSupportedQueryString(
-  key: string | undefined
-): key is SupportedQueryStrings {
-  return (
-    typeof key !== 'undefined' &&
-    SUPPORTED_QS.includes(key as SupportedQueryStrings)
-  )
-}
-
-export function isQueryString<T extends MongooseDevDocument<DataWithId<{}>>>(
-  doc: UpdateQuery<T> | FilterQuery<T>
-) {
-  const reg = /^\$.*/
-
-  let last: KeyoFQuery | undefined
-  for (let key in doc) {
-    const match = reg.test(key)
-    if (match) {
-      last = key as any
-    }
-  }
-  return last
-}
-
-type EmptyObject = never
-
-function isEmptyObject<T extends {} = {}>(obj: T): obj is EmptyObject {
-  return Object.keys(obj).length === 0
-}
-
-export interface QueryResults {
-  n?: number
-  nModified?: number
-  ok?: number
-}
-
-const MODEL_INSTANCES: Record<string, MongooseDevModel<any>> = {}
+// interface InterfaceReturn<T extends MongooseDevDocument<DataWithId<{}>>> {
+//   new (doc: Partial<T>): T
+// }
 
 export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
   #MemoryData: Record<string, Record<string, T>>
   #refetch = true
-  // private data: DataInterface<T>
-  protected model: mongoose.Model<T, {}>
-
-  protected get connection() {
-    return new MoongooseDevConnection<T, DataInterface<T>>()
-  }
-  // public fileUrl: string
   protected modelName: string
   protected schema: Schema<T>
   public isDev: boolean
   protected baseClass: new (...props: any[]) => T
+  protected model: mongoose.Model<T, {}>
+  constructor(
+    modelName: string,
+    schema: Schema<T>,
+    baseClass: new (...props: any[]) => T,
+    isDev = true
+  ) {
+    this.modelName = modelName
+    this.schema = schema
+    this.isDev = isDev
+    this.baseClass = baseClass
+    this.model = mongoose.model<T>(modelName, schema)
+    if (MODEL_INSTANCES[modelName]) {
+      return MODEL_INSTANCES[modelName] // as MongooseDevModel<T> // & (new () => MongooseDevModel<T>)
+    }
+
+    MODEL_INSTANCES[modelName] = this
+    return MODEL_INSTANCES[modelName] // as MongooseDevModel<T> //& (new () => MongooseDevModel<T>)
+  }
+
+  protected get connection() {
+    return new MoongooseDevConnection<T, DataInterface<T>>()
+  }
+
+  /**
+   * Create a document but doesnt save it.
+   * this replaces the new Model() method.
+   * use .save() in order to save it.
+   * @param doc partial T
+   */
+  createRaw(doc: Partial<T>) {
+    return this.createInstance(doc)
+  }
 
   //To make sure i give the proper values
-  private createInstance(data: Partial<T> | CreateQuery<T>) {
-    const id = ObjectID.createFromTime(new Date().getTime())
+  protected createInstance(data: Partial<T> | CreateQuery<T>) {
+    let id = ObjectID.createFromTime(new Date().getTime())
+    if (data._id) {
+      id = new ObjectID(data._id)
+    }
     const obj = new this.baseClass({
-      _id: id,
       ...data,
+      _id: id,
       modelName: this.modelName,
-      isDev: this.isDev,
     }) as T
 
     return obj
   }
-  private createInstanceArray(dataArray: T[]) {
+  protected createInstanceArray(dataArray: T[]) {
     const output: T[] = []
     for (let data of dataArray) {
-      const id = ObjectID.createFromTime(new Date().getTime())
-      const obj = new this.baseClass({
-        ...data,
-        _id: data._id || id,
-        modelName: this.modelName,
-        isDev: this.isDev,
-      }) as T
+      const obj = this.createInstance(data)
       output.push(obj)
     }
     return output
@@ -136,38 +97,20 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
     return null
   }
 
-  constructor(
-    modelName: string,
-    schema: Schema<T>,
-    baseClass: new (...props: any[]) => T,
-    isDev = true
-  ) {
-    this.modelName = modelName
-    this.schema = schema
-    this.isDev = isDev
-    this.baseClass = baseClass
-    this.model = mongoose.model<T>(modelName, schema)
-    if (MODEL_INSTANCES[modelName]) {
-      return MODEL_INSTANCES[modelName]
-    }
-    MODEL_INSTANCES[modelName] = this
-    return MODEL_INSTANCES[modelName]
-  }
-
-  //   private ensureInitialized() {
-
-  //   }
-  private set _data(val: Record<string, Record<string, T>>) {
+  protected set _data(val: Record<string, Record<string, T>>) {
     this.#MemoryData = val
-    this.save()
+    // this.save()
   }
 
-  private get _data(): Record<string, Record<string, T>> {
+  protected get _data(): Record<string, Record<string, T>> {
     if (this.#refetch) {
       let data: Record<string, Record<string, T>> =
-        (this.connection.retrive() as any) || ({} as any)
+        (this.connection.retrive(true) as any) || ({} as any)
 
       if (Object.keys(data).length === 0) {
+        data[this.modelName] = {}
+      }
+      if (data[this.modelName] === undefined) {
         data[this.modelName] = {}
       }
 
@@ -176,14 +119,14 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
         const val = output[this.modelName][key]
         output[this.modelName][key] = this.createInstance(val)
       }
-      this.#refetch = false
-      this.#MemoryData = output
+      // this.#refetch = false
+      this.#MemoryData = { ...output }
       return output
     }
     return this.#MemoryData
   }
 
-  private get data() {
+  protected get data() {
     return this._data[this.modelName] as Record<string, T>
   }
 
@@ -199,18 +142,13 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
     if (filter._id) {
       return this._data[filter._id.toString()] !== undefined
     } else {
-      for (let obj of Object.values(this.data)) {
-        if (isMatchFunction(obj, filter as any)) {
-          if (callback) {
-            callback(undefined, true)
-          }
-          return true
-        }
-      }
+      const data = await this.findOne(filter)
+      const exists = data !== null
+
       if (callback) {
-        callback(undefined, false)
+        callback(undefined, exists)
       }
-      return false
+      return exists
     }
   }
 
@@ -222,14 +160,12 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
       return this.model.find(where, callback)
     }
 
+    const { $conditions } = this.getTransformedConditions(where, {})
+    where = $conditions
     if (isEmptyObject(where)) {
       return this.createInstanceArray(Object.values(this.data))
     }
-    // if (Object.keys(where).length === 0) {
-    //   return this.createInstanceArray(Object.values(this.data))
-    // }
-    const { $conditions } = this.getTransformedConditions(where, {})
-    where = $conditions
+
     const result: T[] = []
     if (where._id) {
       result.push(this.data[where._id.toString()])
@@ -318,18 +254,24 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
     if (!this.isDev) {
       return this.model.findById(id, callback)
     }
-
-    const result = this.createInstance(this.data[String(id)])
-    if (callback) {
-      callback(undefined, result)
+    let result: T | null = null
+    if (this.data[String(id)]) {
+      result = this.createInstance(this.data[String(id)])
     }
-    return new Promise<T>(res => {
-      const obj = Object.assign({}, result) as T
-      res(obj)
+    if (callback) {
+      callback(result ? undefined : 'Not Found.', result)
+    }
+    return new Promise<T | null>(res => {
+      if (!result) {
+        res(null)
+      } else {
+        const obj = Object.assign({}, result) as T
+        res(obj)
+      }
     })
   }
 
-  private getTransformedConditions(
+  protected getTransformedConditions(
     conditions: FilterQuery<T>,
     doc: UpdateQuery<T>
   ) {
@@ -382,16 +324,17 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
       }
       //for some reason it doesnt work if i dont use a copy
       existinDocument = { ...existinDocument }
-      for (let key in $doc) {
-        Object.defineProperty(existinDocument, key, {
-          value: $doc[key],
-        })
-      }
-
+      Object.assign(existinDocument, $doc)
       const inteface = this.createInstance(existinDocument)
-      this._data[this.modelName][existinDocument._id.toHexString()] = inteface
+      //   for (let key in $doc) {
+      //     Object.defineProperty(inteface, key, {
+      //       value: $doc[key],
+      //     })
+      //   }
 
-      this.save()
+      this._data[this.modelName][String(inteface._id)] = inteface
+
+      await this.save()
       output = { n: 1, nModified: 1, ok: 1 }
     }
     return output
@@ -421,8 +364,9 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
           nModified: 0,
         }
         const documents = await this.find($conditions)
-        const modified: T[] = []
         output.n = documents.length
+        output.ok = documents.length > 0 ? 1 : 0
+        let modified: T[] = []
 
         for (let existin of documents) {
           existin = { ...existin }
@@ -441,11 +385,10 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
         }
         output.nModified = modified.length
         for (let toSave of modified) {
-          this._data[this.modelName][
-            toSave._id.toHexString()
-          ] = this.createInstance(toSave)
+          const updated = this.createInstance(toSave)
+          await updated.save()
+          this._data[this.modelName][String(toSave._id)] = updated
         }
-        this.save()
         res(output)
       })
     }
@@ -499,9 +442,9 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
         }
         output.nModified = modified.length
         for (let toSave of modified) {
-          this._data[this.modelName][
-            toSave._id.toHexString()
-          ] = this.createInstance(toSave)
+          this._data[this.modelName][String(toSave._id)] = this.createInstance(
+            toSave
+          )
         }
         this.save()
         res(output)
@@ -522,11 +465,10 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
 
     // const id = v4()
     const obj = this.createInstance(data)
-
+    await obj.save()
     this._data[this.modelName] = this._data[this.modelName] || {}
     this._data[this.modelName][obj._id.toHexString()] = obj
 
-    // this.connection.save(this.modelName, this._data[this.modelName])
     return new Promise(res => {
       res(obj)
     })
@@ -548,7 +490,9 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
       this.model.deleteMany({})
       return this
     }
-    this._data = {}
+    this.#MemoryData = {
+      [this.modelName]: {},
+    }
     this.save()
     return this
   }
@@ -557,8 +501,8 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
     if (!this.isDev) {
       return this.model.findByIdAndRemove(id)
     }
-    const val = this.data[id.toHexString()]
-    delete this._data[this.modelName][id.toHexString()]
+    const val = this.data[String(id)]
+    delete this._data[this.modelName][String(id)]
 
     await this.save()
     return val
@@ -607,17 +551,3 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
     return this
   }
 }
-
-// class User extends MongooseDevDocument<any> {
-//   name: string
-// }
-
-// const userSchema = new mongoose.Schema<User>({
-//   name: String,
-// })
-
-// const UserModel = new MongooseDevModel('User', userSchema, User)
-
-// UserModel.findOne({}).then(u => {
-//   console.log(u?._id)
-// })

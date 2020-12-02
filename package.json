@@ -50,6 +50,19 @@
     "babel-jest": "^26.5.2",
     "jest": "^26.5.3",
     "rimraf": "^3.0.2",
+    "ts-jest": "^26.4.4",
     "typescript": "^4.0.3"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "clearMocks": true,
+    "coverageDirectory": "coverage",
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.(ts|tsx)"
+    ],
+    "setupFiles": [
+      "<rootDir>/tests/setupTests.ts"
+    ]
   }
 }

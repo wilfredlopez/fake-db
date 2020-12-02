@@ -8,7 +8,7 @@ interface User {
   password: string
 }
 
-describe('fakeDb', () => {
+describe.skip('fakeDb', () => {
   it('throws error if connection not initialized first', () => {
     expect(() => new FakeDb<User>('testUsers')).toThrow()
   })

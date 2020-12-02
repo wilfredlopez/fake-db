@@ -15,7 +15,7 @@ let userDbIntance: FakeDb<User>
 
 const dbKey = 'testUsers'
 
-describe('fakeDb', () => {
+describe.skip('fakeDb', () => {
   beforeAll(async () => {
     const connection = await connectFakeDb(filePath)
     if (connection && connection instanceof Connection) {

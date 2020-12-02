@@ -53,19 +53,16 @@ export class MoongooseDevConnection<
       return this.#cache
     }
     const url = this.#assertFileUrl()
-    // if (!this.#fileUrl) {
-    //   throw new FakeDbConnectionError()
-    // }
     const data = fs.readFileSync(url, {
       encoding: 'utf-8',
       flag: 'a+',
     })
     if (data) {
       this.#cache = JSON.parse(data) as T
-      return { ...this.#cache } as T
+    } else {
+      this.#cache = {} as T
     }
-    this.#cache = {} as T
-    return {} as T
+    return { ...this.#cache }
   }
 
   public dropDatabase() {

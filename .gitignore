@@ -16,3 +16,4 @@ yarn-error.log*
 lib/
 esm
 tests/*.json
+coverage
