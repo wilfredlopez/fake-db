@@ -22,7 +22,7 @@ export class MoongooseDevConnection<
    * @param fileUrl JSON FILE URL.
    */
   #fileUrl?: string
-  #cache: T | undefined
+  private cache: T | undefined
   #assertFileUrl = () => {
     if (!this.#fileUrl) {
       throw new MongooseDevConnectionError()
@@ -49,8 +49,8 @@ export class MoongooseDevConnection<
     return Instance
   }
   public retrive(force = false) {
-    if (this.#cache && !force) {
-      return this.#cache
+    if (this.cache && Object.keys(this.cache).length !== 0 && !force) {
+      return this.cache
     }
     const url = this.#assertFileUrl()
     const data = fs.readFileSync(url, {
@@ -58,11 +58,11 @@ export class MoongooseDevConnection<
       flag: 'a+',
     })
     if (data) {
-      this.#cache = JSON.parse(data) as T
+      this.cache = JSON.parse(data) as T
     } else {
-      this.#cache = {} as T
+      this.cache = {} as T
     }
-    return { ...this.#cache }
+    return { ...this.cache }
   }
 
   public dropDatabase() {
@@ -82,7 +82,7 @@ export class MoongooseDevConnection<
   }
 
   private writeFile(allData: T) {
-    this.#cache = allData
+    this.cache = allData
     const data = JSON.stringify(allData)
     fs.writeFileSync(this.#assertFileUrl(), data)
   }

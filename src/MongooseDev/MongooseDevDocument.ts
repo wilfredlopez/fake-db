@@ -299,6 +299,9 @@ export class MongooseDevDocument<T extends { _id: ObjectID }>
 
     this.ensureModelName()
     const data = this.connection.retrive()
+    if (!data[this.modelName!]) {
+      data[this.modelName!] = {}
+    }
     data[this.modelName!][this._id.toHexString()] =
       data[this.modelName!][this._id.toHexString()] || {}
     data[this.modelName!][this._id.toHexString()] = this

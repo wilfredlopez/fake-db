@@ -144,11 +144,17 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
     } else {
       const data = await this.findOne(filter)
       const exists = data !== null
-
-      if (callback) {
-        callback(undefined, exists)
+      if (!exists) {
+        if (callback) {
+          callback('Not Found.', false)
+        }
+        return false
+      } else {
+        if (callback) {
+          callback(undefined, true)
+        }
+        return true
       }
-      return exists
     }
   }
 
@@ -207,14 +213,13 @@ export class MongooseDevModel<T extends MongooseDevDocument<DataWithId<{}>>> {
     if (!this.isDev) {
       return this.model.findOne(where, callback)
     }
+    const { $conditions } = this.getTransformedConditions(where, {})
+
+    where = $conditions
     if (isEmptyObject(where)) {
       console.error('findOne most not be called with an empty object {}')
       return Object.values(this.data)[0]
     }
-
-    const { $conditions } = this.getTransformedConditions(where, {})
-
-    where = $conditions
 
     if (where._id) {
       return new Promise<T | null | undefined>(res => {

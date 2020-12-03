@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema<UserDocument>({
   firstname: String,
   email: String,
 })
-let User: MongooseDev.MongooseDevModel<UserDocument> //& { new (doc: Partial<UserDocument>): UserDocument}
+let User: MongooseDev.MongooseDevModel<UserDocument> //& {new (doc: Partial<UserDocument>): UserDocument}
 // let User: MongooseDev.MongooseDevModel<UserDocument>
 
 const DEMO_USER: Partial<UserDocument> & {
@@ -69,6 +69,8 @@ describe('Mongoose Dev', () => {
   })
   describe('Common operations', () => {
     it('creates model and saves it', async () => {
+      // const newAble = new User({ email: '', firstname: '' })
+      // console.log({ newAble })
       const user = await User.create(DEMO_USER)
       DEMO_USER._id = user._id
       await user.save()
