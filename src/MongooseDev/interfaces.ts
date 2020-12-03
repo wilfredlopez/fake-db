@@ -34,3 +34,4 @@ export interface QueryResults {
   nModified?: number
   ok?: number
 }
+export type DocumentType = MongooseDevDocument<DataWithId<{}>>

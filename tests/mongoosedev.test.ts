@@ -198,6 +198,9 @@ describe('Mongoose Dev', () => {
     })
     it('createRaw: new operator replacement', async () => {
       const u = User.createRaw({ email: 'ssss', firstname: 'soe' })
+      const bestName = 'isActualiNewable'
+      const u2 = new User({ email: 'wat', firstname: bestName })
+      expect(u2.firstname).toBe(bestName)
       expect(u._id).toBeDefined()
       const NotSaved = await User.findById(u._id)
       expect(NotSaved).toBe(null)

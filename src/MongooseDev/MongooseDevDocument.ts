@@ -3,7 +3,7 @@ import { ObjectID } from 'mongodb'
 import mongoose, { Document } from 'mongoose'
 import { DataInterface } from './interfaces'
 import { MoongooseDevConnection } from './MongooseConnection'
-import { MongooseDevModel } from './MongooseDevModel'
+import { getInstance, MongooseDevModel } from './MongooseDevModel'
 
 type PropertiesOf<T extends {}> = {
   [P in keyof T]: T[P]
@@ -58,9 +58,10 @@ export class MongooseDevDocument<T extends { _id: ObjectID }>
   private get isDev() {
     return this.modelInstance.isDev
   }
+  // private isDev = true
 
-  protected get modelInstance(): MongooseDevModel<any> {
-    return MongooseDevModel.getInstance(this.modelName!)!
+  protected get modelInstance(): MongooseDevModel<this> {
+    return getInstance<this>(this.modelName!)!
   }
 
   /* ------****************************------
@@ -70,9 +71,9 @@ export class MongooseDevDocument<T extends { _id: ObjectID }>
     super()
     const { modelName, _id, ...rest } = props
     this.modelName = modelName || ''
-    if (_id) {
-      this._id = new ObjectID(_id)
-    }
+    this._id = new ObjectID(_id)
+    // if (_id) {
+    // }
 
     defineNotEnumerableProperties(this, modelName || '')
     //Protected Property can only be set from within the class.
