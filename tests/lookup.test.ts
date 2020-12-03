@@ -1,6 +1,6 @@
 import { isQueryString } from '../src/MongooseDev/utils'
 
-describe.skip('lookup', () => {
+describe('lookup', () => {
   it('shold work', () => {
     const value = isQueryString({
       $set: {

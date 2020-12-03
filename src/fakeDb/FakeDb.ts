@@ -1,6 +1,7 @@
 import { v4 } from 'uuid'
-import { Connection } from './Connection'
-import { DataInterface, DataWithId, WhereType } from './interfaces'
+import { FakeDbConnection } from './FakeDbConnection'
+import { FakeDbData, WithStringId } from './interfaces'
+import { WhereType } from '../shared'
 
 function isMatchFunction<T>(obj: T, where: WhereType<T>) {
   let allMatch = true
@@ -19,16 +20,16 @@ function isMatchFunction<T>(obj: T, where: WhereType<T>) {
 const DATABSE_INTANCES: Record<string, FakeDb<any> | undefined> = {}
 
 export class FakeDb<T extends {}> {
-  private data: DataInterface<T>
+  private data: FakeDbData<T>
   /**
    *
    * @param fileUrl JSON FILE URL.
    */
-  private connection: Connection<DataInterface<T>>
+  private connection: FakeDbConnection<FakeDbData<T>>
   private name: string
   constructor(name: string) {
     this.name = name
-    this.connection = new Connection<DataInterface<T>>()
+    this.connection = new FakeDbConnection<FakeDbData<T>>()
     this.data = this.connection.retrive()
     let shouldInitialize = false
     if (Object.keys(this.data).length === 0) {
@@ -58,9 +59,9 @@ export class FakeDb<T extends {}> {
   }
 
   getConnection() {
-    return new Connection<DataInterface<T>>()
+    return new FakeDbConnection<FakeDbData<T>>()
   }
-  exists(where: WhereType<DataWithId<T>>, isMatch?: typeof isMatchFunction) {
+  exists(where: WhereType<WithStringId<T>>, isMatch?: typeof isMatchFunction) {
     if (!isMatch) {
       isMatch = isMatchFunction
     }
@@ -78,9 +79,9 @@ export class FakeDb<T extends {}> {
 
   filter(
     loopFunction?: (
-      value: DataWithId<T>,
+      value: WithStringId<T>,
       index: number,
-      array: DataWithId<T>[]
+      array: WithStringId<T>[]
     ) => boolean
   ) {
     const data = Object.values(this.data[this.name])
@@ -91,19 +92,19 @@ export class FakeDb<T extends {}> {
   }
 
   getAll() {
-    const all: DataWithId<T>[] = []
+    const all: WithStringId<T>[] = []
     for (let key in this.data[this.name]) {
       const val = this.data[this.name][key]
       all.push(val)
     }
     return all
   }
-  updateOne(updated: DataWithId<T>) {
+  updateOne(updated: WithStringId<T>) {
     this.data[this.name][updated._id] = updated
     this.save()
     return this
   }
-  update(updated: DataWithId<T>[]) {
+  update(updated: WithStringId<T>[]) {
     for (let obj of updated) {
       this.updateOne(obj)
     }
@@ -117,9 +118,9 @@ export class FakeDb<T extends {}> {
   async create(
     data: T,
     shouldCreate?: (
-      value: DataWithId<T>,
+      value: WithStringId<T>,
       index: number,
-      obj: DataWithId<T>[]
+      obj: WithStringId<T>[]
     ) => void
   ) {
     if (typeof shouldCreate === 'function') {
@@ -140,8 +141,8 @@ export class FakeDb<T extends {}> {
   }
 
   async createMany(data: T[]) {
-    let created: Promise<DataWithId<T>>[] = []
-    let current: Promise<DataWithId<T>>
+    let created: Promise<WithStringId<T>>[] = []
+    let current: Promise<WithStringId<T>>
     for (let obj of data) {
       current = this.create(obj)
       created.push(current)
@@ -150,7 +151,7 @@ export class FakeDb<T extends {}> {
     return values
   }
 
-  findById(id: DataWithId<T>['_id']) {
+  findById(id: WithStringId<T>['_id']) {
     return this.data[this.name][id]
   }
 
@@ -160,14 +161,14 @@ export class FakeDb<T extends {}> {
     return this
   }
 
-  removeById(id: DataWithId<T>['_id']) {
+  removeById(id: WithStringId<T>['_id']) {
     const val = this.data[this.name][id]
     delete this.data[this.name][id]
     this.save()
     return val
   }
 
-  remove(where: WhereType<DataWithId<T>>) {
+  remove(where: WhereType<WithStringId<T>>) {
     const obj = this.findOne(where)
     if (obj && typeof obj !== null) {
       return this.removeById(obj['_id'] as any)
@@ -176,7 +177,7 @@ export class FakeDb<T extends {}> {
     }
   }
 
-  findOne(where: WhereType<DataWithId<T>>) {
+  findOne(where: WhereType<WithStringId<T>>) {
     if (where._id) {
       return this.data[this.name][where._id]
     } else {
@@ -199,7 +200,7 @@ export class FakeDb<T extends {}> {
     }
   }
 
-  find(where: WhereType<DataWithId<T>>) {
+  find(where: WhereType<WithStringId<T>>) {
     const result = []
     if (where._id) {
       result.push(this.data[this.name][where._id])

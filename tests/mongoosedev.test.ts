@@ -1,7 +1,12 @@
 import path from 'path'
 import mongoose, { Mongoose } from 'mongoose'
-import { MongooseDev } from '../src/index'
-import { MoongooseDevConnection } from '../src/MongooseDev/MongooseConnection'
+import {
+  MongooseDevDocument,
+  MoongooseDevConnection,
+  MongooseDevModel,
+  connectMongoIf,
+} from '../src/'
+// import { MoongooseDevConnection } from '../src/MongooseDev/MongooseConnection'
 
 /**
  * TRIGGER DEV MODE TO RUN IN MONGODB DATABASE OR THE JSON FILE DATABASE (DEV MODE).
@@ -11,7 +16,7 @@ const DEV_MODE = true
 const filePath = path.join(__dirname, 'mongoosedev.json')
 
 //TESTS UTILS
-class UserDocument extends MongooseDev.MongooseDevDocument<any> {
+class UserDocument extends MongooseDevDocument<any> {
   firstname: string
   email: string
 }
@@ -20,7 +25,7 @@ const userSchema = new mongoose.Schema<UserDocument>({
   firstname: String,
   email: String,
 })
-let User: MongooseDev.MongooseDevModel<UserDocument> //& {new (doc: Partial<UserDocument>): UserDocument}
+let User: MongooseDevModel<UserDocument> //& {new (doc: Partial<UserDocument>): UserDocument}
 // let User: MongooseDev.MongooseDevModel<UserDocument>
 
 const DEMO_USER: Partial<UserDocument> & {
@@ -37,7 +42,7 @@ let conn: MoongooseDevConnection<any, any> | Mongoose | undefined = undefined
 //Start tests
 describe('Mongoose Dev', () => {
   beforeAll(async () => {
-    conn = await MongooseDev.connectMongoIf({
+    conn = await connectMongoIf({
       isDev: DEV_MODE,
       mongoUri: 'mongodb://127.0.0.1:27017',
       devJsonfilePath: filePath,
@@ -53,7 +58,7 @@ describe('Mongoose Dev', () => {
       await conn.connection.dropDatabase()
     }
 
-    User = new MongooseDev.MongooseDevModel(
+    User = new MongooseDevModel(
       'User',
       userSchema,
       UserDocument,

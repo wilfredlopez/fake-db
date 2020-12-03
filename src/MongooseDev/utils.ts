@@ -1,12 +1,12 @@
 import { FilterQuery, UpdateQuery } from 'mongoose'
 import {
-  DataWithId,
+  WithMongoId,
   KeyoFQuery,
   MongooseDevDocument,
   SupportedQueryStrings,
 } from '.'
 
-export function isQueryString<T extends MongooseDevDocument<DataWithId<{}>>>(
+export function isQueryString<T extends MongooseDevDocument<WithMongoId<{}>>>(
   doc: UpdateQuery<T> | FilterQuery<T>
 ) {
   const reg = /^\$.*/

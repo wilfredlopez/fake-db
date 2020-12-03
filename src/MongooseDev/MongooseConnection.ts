@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { DataInterface } from './interfaces'
+import { MongooseDevData } from './interfaces'
 import { ObjectID } from 'mongodb'
 import { MongooseDevDocument } from './MongooseDevDocument'
 
@@ -15,7 +15,7 @@ let Instance: MoongooseDevConnection<any, any>
 
 export class MoongooseDevConnection<
   D extends { _id: ObjectID },
-  T extends DataInterface<D>
+  T extends MongooseDevData<D>
 > {
   /**
    *

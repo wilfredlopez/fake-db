@@ -1,8 +1,8 @@
-import { Connection } from './Connection'
+import { FakeDbConnection } from './FakeDbConnection'
 
-export function connectFakeDb(uris: string): Promise<Connection<any>> {
+export function connectFakeDb(uris: string): Promise<FakeDbConnection<any>> {
   return new Promise(res => {
-    const connection = new Connection(uris)
+    const connection = new FakeDbConnection(uris)
     res(connection)
   })
 }

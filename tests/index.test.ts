@@ -1,4 +1,4 @@
-import { connectFakeDb, Connection, FakeDb } from '../src/index'
+import { connectFakeDb, FakeDbConnection, FakeDb } from '../src/index'
 import path from 'path'
 
 interface User {
@@ -15,10 +15,10 @@ let userDbIntance: FakeDb<User>
 
 const dbKey = 'testUsers'
 
-describe.skip('fakeDb', () => {
+describe('fakeDb', () => {
   beforeAll(async () => {
     const connection = await connectFakeDb(filePath)
-    if (connection && connection instanceof Connection) {
+    if (connection && connection instanceof FakeDbConnection) {
       connection.dropDatabase()
     }
   })

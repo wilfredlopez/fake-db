@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events'
 import { ObjectID } from 'mongodb'
 import mongoose, { Document } from 'mongoose'
-import { DataInterface } from './interfaces'
+import { MongooseDevData } from './interfaces'
 import { MoongooseDevConnection } from './MongooseConnection'
 import { getInstance, MongooseDevModel } from './MongooseDevModel'
 
-type PropertiesOf<T extends {}> = {
+export type PropertiesOf<T extends {}> = {
   [P in keyof T]: T[P]
 }
 
@@ -52,7 +52,7 @@ export class MongooseDevDocument<T extends { _id: ObjectID }>
     return this._id.toHexString()
   }
   protected get connection() {
-    return new MoongooseDevConnection<T, DataInterface<T>>()
+    return new MoongooseDevConnection<T, MongooseDevData<T>>()
   }
 
   private get isDev() {

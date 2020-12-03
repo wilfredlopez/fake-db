@@ -1,7 +1,7 @@
 import fs from 'fs'
-import { DataInterface } from './interfaces'
+import { FakeDbData } from './interfaces'
 
-export interface Connection<T extends DataInterface<{}>> {
+export interface FakeDbConnection<T extends FakeDbData<{}>> {
   retrive: () => T
   save: (instanceName: keyof T, obj: T[string]) => this
   dropDatabase: () => void
@@ -10,22 +10,30 @@ export interface Connection<T extends DataInterface<{}>> {
 export class FakeDbConnectionError extends Error {
   constructor() {
     super(
-      'Connection: Please me sure connection is established by calling the connect function.'
+      'FakeDbConnection: Please me sure connection is established by calling the connect function.'
     )
     this.name = 'FakeDbConnectionError'
   }
 }
 
-export const Connection: {
-  new <T extends DataInterface<{}>>(fileUrl?: string): Connection<T>
+export const FakeDbConnection: {
+  new <T extends FakeDbData<{}>>(fileUrl?: string): FakeDbConnection<T>
 } = (() => {
-  let Instance: Connection<any>
-  class Connection<T extends DataInterface<{}>> {
+  let Instance: FakeDbConnection<any>
+  class FakeDbConnection<T extends FakeDbData<{}>> {
     /**
      *
      * @param fileUrl JSON FILE URL.
      */
     #fileUrl?: string
+    #cache: T | undefined
+
+    private writeFile(allData: T) {
+      this.#cache = allData
+      const data = JSON.stringify(allData)
+      fs.writeFileSync(this.#assertFileUrl(), data)
+    }
+
     #assertFileUrl = () => {
       if (!this.#fileUrl) {
         throw new FakeDbConnectionError()
@@ -51,68 +59,52 @@ export const Connection: {
       }
       return Instance
     }
-    public retrive() {
+    public retrive(force = false) {
+      if (this.#cache && Object.keys(this.#cache).length !== 0 && !force) {
+        return this.#cache
+      }
       const url = this.#assertFileUrl()
-      // if (!this.#fileUrl) {
-      //   throw new FakeDbConnectionError()
-      // }
       const data = fs.readFileSync(url, {
         encoding: 'utf-8',
         flag: 'a+',
       })
       if (data) {
-        return JSON.parse(data) as T
+        this.#cache = JSON.parse(data) as T
+      } else {
+        this.#cache = {} as T
       }
-      return {} as T
+      return { ...this.#cache }
     }
-
+    remove(instanceName: keyof T, id: string) {
+      const allData = this.retrive()
+      delete allData[instanceName][id]
+      this.writeFile(allData)
+      return this
+    }
+    update(instanceName: string, obj: T[string][string]) {
+      const allData = this.retrive()
+      allData[instanceName][obj._id] = obj
+      this.writeFile(allData)
+      return this
+    }
     public dropDatabase() {
-      const url = this.#assertFileUrl()
       const data = this.retrive() || {}
       for (let key in data) {
         for (let innerKey in data[key]) {
           delete data[key][innerKey]
         }
       }
-      fs.writeFileSync(url, JSON.stringify(data))
+      this.writeFile(data)
     }
     public save(instanceName: keyof T, obj: T[string]) {
       if (!this.#fileUrl) {
         throw new FakeDbConnectionError()
       }
-      const allData = this.retrive()
+      const allData = this.retrive() || {}
       allData[instanceName] = obj
-      const data = JSON.stringify(allData)
-      fs.writeFileSync(this.#fileUrl, data)
+      this.writeFile(allData)
       return this
     }
   }
-  return Connection
+  return FakeDbConnection
 })()
-
-// class Connection<T extends {}> {
-//   /**
-//    *
-//    * @param fileUrl JSON FILE URL.
-//    */
-//   constructor(public fileUrl: string) {
-//     if (!fileUrl.endsWith('.json')) {
-//       throw new Error('File URL for FakeBb most end with .json')
-//     }
-//   }
-//   public retrive() {
-//     const data = fs.readFileSync(this.fileUrl, {
-//       encoding: 'utf-8',
-//       flag: 'a+',
-//     })
-//     if (data) {
-//       return JSON.parse(data) as T
-//     }
-//     return {} as T
-//   }
-//   public save(obj: T) {
-//     const data = JSON.stringify(obj)
-//     fs.writeFileSync(this.fileUrl, data)
-//     return this
-//   }
-// }

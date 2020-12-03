@@ -8,7 +8,7 @@ import mongoose, {
   Schema,
   UpdateQuery,
 } from 'mongoose'
-import { DataInterface, DataWithId, QueryResults } from './interfaces'
+import { MongooseDevData, WithMongoId, QueryResults } from './interfaces'
 // import mongodb from 'mongodb'
 // import { Model } from 'mongoose'
 import { MoongooseDevConnection } from './MongooseConnection'
@@ -24,7 +24,7 @@ const MODEL_INSTANCES: Record<
 //   new (doc: Partial<T>): T
 // }
 
-type DocumentType = MongooseDevDocument<DataWithId<{}>>
+type DocumentType = MongooseDevDocument<WithMongoId<{}>>
 
 export class MongooseDevModelOLD<T extends DocumentType> {
   protected MemoryData: Record<string, Record<string, T>>
@@ -54,7 +54,7 @@ export class MongooseDevModelOLD<T extends DocumentType> {
   }
 
   protected get connection() {
-    return new MoongooseDevConnection<T, DataInterface<T>>()
+    return new MoongooseDevConnection<T, MongooseDevData<T>>()
   }
 
   /**
@@ -504,7 +504,7 @@ export class MongooseDevModelOLD<T extends DocumentType> {
     return this
   }
 
-  async findByIdAndRemove(id: DataWithId<T>['_id']) {
+  async findByIdAndRemove(id: WithMongoId<T>['_id']) {
     if (!this.isDev) {
       return this.model.findByIdAndRemove(id)
     }

@@ -6,7 +6,7 @@ import mongoose, {
   UpdateQuery,
 } from 'mongoose'
 import { MoongooseDevConnection } from '.'
-import { DataInterface, DocumentType } from './interfaces'
+import { MongooseDevData, DocumentType } from './interfaces'
 import { MongooseDevModelMixin } from './MongooseDevModelMixin'
 
 const MODEL_INSTANCES: Record<string, MongooseDevModel<any>> = {}
@@ -32,7 +32,7 @@ export interface MongooseDevModel<T extends DocumentType>
 
   readonly connection: MoongooseDevConnection<
     DocumentType,
-    DataInterface<DocumentType>
+    MongooseDevData<DocumentType>
   >
 
   createRaw<T extends DocumentType>(doc: Partial<T>): T

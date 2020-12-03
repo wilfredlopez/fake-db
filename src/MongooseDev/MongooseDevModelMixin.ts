@@ -9,8 +9,8 @@ import mongoose, {
   UpdateQuery,
 } from 'mongoose'
 import {
-  DataInterface,
-  DataWithId,
+  MongooseDevData,
+  WithMongoId,
   QueryResults,
   DocumentType,
 } from './interfaces'
@@ -31,7 +31,7 @@ export const MongooseDevModelMixin = <T extends { new (...args: any[]): any }>(
     static get connection() {
       return new MoongooseDevConnection<
         DocumentType,
-        DataInterface<DocumentType>
+        MongooseDevData<DocumentType>
       >()
     }
 
@@ -517,7 +517,7 @@ export const MongooseDevModelMixin = <T extends { new (...args: any[]): any }>(
     }
 
     static async findByIdAndRemove<T extends DocumentType>(
-      id: DataWithId<T>['_id']
+      id: WithMongoId<T>['_id']
     ) {
       if (!this.isDev) {
         return this.model.findByIdAndRemove(id)

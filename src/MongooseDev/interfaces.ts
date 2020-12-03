@@ -1,15 +1,11 @@
 import { ObjectID } from 'mongodb'
 import { MongooseDevDocument } from './MongooseDevDocument'
-export type DataWithId<T extends {}> = T & { _id: ObjectID }
+export type WithMongoId<T extends {}> = T & { _id: ObjectID }
 
-export type DataInterface<T> = Record<
+export type MongooseDevData<T> = Record<
   string,
-  Record<string, MongooseDevDocument<DataWithId<T>>>
+  Record<string, MongooseDevDocument<WithMongoId<T>>>
 >
-
-export type WhereType<T extends {}> = {
-  [K in keyof T]?: T[K]
-}
 
 export type KeyoFQuery =
   | '$currentDate'
@@ -34,4 +30,4 @@ export interface QueryResults {
   nModified?: number
   ok?: number
 }
-export type DocumentType = MongooseDevDocument<DataWithId<{}>>
+export type DocumentType = MongooseDevDocument<WithMongoId<{}>>
